@@ -1,0 +1,110 @@
+Project courier_system {
+  database_type: 'PostgreSQL'
+  Note: 'Sistema de Envio de Paquetes y Logistica (Courier) - ISW-522 Quiz 1'
+}
+
+Table customers {
+  id uuid [pk, default: `gen_random_uuid()`]
+  full_name varchar(120) [not null]
+  email varchar(150) [not null, unique]
+  phone varchar(20) [not null]
+  payment_method jsonb [note: 'Dato sensible: metodo de pago guardado']
+  registered_at timestamp [not null, default: `now()`]
+  is_active boolean [not null, default: true]
+
+  Note: 'Clientes que envian paquetes (tienen cuenta en el sistema)'
+}
+
+Table couriers {
+  id uuid [pk, default: `gen_random_uuid()`]
+  full_name varchar(120) [not null]
+  national_id varchar(20) [not null, unique, note: 'Dato sensible']
+  phone varchar(20) [not null]
+  vehicle_type vehicle_type_enum [not null]
+  db_username varchar(60) [not null, unique, note: 'Usado por las politicas RLS via CURRENT_USER']
+  is_active boolean [not null, default: true]
+
+  Note: 'Empleados fijos que entregan los paquetes'
+}
+
+Table branches {
+  id uuid [pk, default: `gen_random_uuid()`]
+  name varchar(100) [not null]
+  province varchar(50) [not null]
+  address varchar(200) [not null]
+  package_capacity integer [not null, note: 'CHECK (package_capacity > 0)']
+
+  Note: 'Puntos fisicos de la empresa'
+}
+
+Table routes {
+  id uuid [pk, default: `gen_random_uuid()`]
+  courier_id uuid [not null]
+  origin_branch_id uuid [not null]
+  route_date date [not null]
+  shift shift_enum [not null]
+  status route_status_enum [not null, default: 'planned']
+
+  Note: 'Recorrido planificado asignado a un repartidor'
+}
+
+Table packages {
+  id uuid [pk, default: `gen_random_uuid()`]
+  customer_id uuid [not null]
+  route_id uuid [note: 'Nullable: paquete puede no tener ruta asignada aun']
+  recipient_name varchar(120) [not null]
+  recipient_phone varchar(20) [not null, note: 'Dato sensible']
+  recipient_address varchar(200) [not null, note: 'Dato sensible']
+  weight_kg "numeric(6,2)" [not null, note: 'CHECK (weight_kg > 0)']
+  declared_value "numeric(10,2)" [note: 'Dato sensible: base para GRANT por columna (P1c)']
+  status package_status_enum [not null, default: 'pending']
+  created_at timestamp [not null, default: `now()`]
+
+  Note: 'El envio en si: remitente, destinatario y estado'
+}
+
+Table package_history {
+  id uuid [pk, default: `gen_random_uuid()`]
+  package_id uuid [not null]
+  courier_id uuid [not null]
+  recorded_status package_status_enum [not null]
+  location jsonb [not null, note: 'Coordenadas y metadatos de la parada. Candidata a indice GIN']
+  recorded_at timestamp [not null, default: `now()`]
+
+  Note: 'Bitacora de movimientos. Tabla candidata para RLS (P1d)'
+}
+
+Enum vehicle_type_enum {
+  motorcycle
+  car
+  pickup
+  truck
+}
+
+Enum shift_enum {
+  morning
+  afternoon
+  night
+}
+
+Enum route_status_enum {
+  planned
+  in_progress
+  finished
+  cancelled
+}
+
+Enum package_status_enum {
+  pending
+  picked_up
+  in_transit
+  delivered
+  returned
+}
+
+Ref: routes.courier_id > couriers.id [delete: restrict]
+Ref: routes.origin_branch_id > branches.id [delete: restrict]
+Ref: packages.customer_id > customers.id [delete: cascade]
+Ref: packages.route_id > routes.id [delete: set null]
+Ref: package_history.package_id > packages.id [delete: cascade]
+Ref: package_history.courier_id > couriers.id [delete: restrict]
