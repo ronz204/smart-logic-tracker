@@ -1,27 +1,27 @@
-name: flavors
+name: tracker
 
 services:
-  postgres:
+  tracker-storage:
     image: postgres:16-alpine
-    container_name: flavors-postgres
+    container_name: tracker-storage
     restart: unless-stopped
     environment:
-      - POSTGRES_DB=flavors
-      - POSTGRES_USER=flavors
+      - POSTGRES_DB=tracker
+      - POSTGRES_USER=tracker
       - POSTGRES_PASSWORD=p4ssw0rd
     ports:
       - 5432:5432
     networks:
-      - flavors-network
+      - tracker-network
     volumes:
-      - flavors-data:/var/lib/postgresql/data
+      - tracker-data:/var/lib/postgresql/data
 
 volumes:
-  flavors-data:
+  tracker-data:
     driver: local
-    name: flavors-data
+    name: tracker-data
 
 networks:
-  flavors-network:
+  tracker-network:
     driver: bridge
-    name: flavors-network
+    name: tracker-network
