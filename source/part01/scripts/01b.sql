@@ -31,6 +31,7 @@ GRANT SELECT, INSERT, UPDATE ON logistics.package_history TO repartidor;
 GRANT SELECT, UPDATE ON logistics.packages TO repartidor;
 GRANT SELECT ON logistics.routes TO repartidor;
 GRANT SELECT ON logistics.branches TO repartidor;
+GRANT SELECT (id, db_username) ON logistics.couriers TO repartidor;
 
 -- ---------------------------------------------------------
 -- admin_logistics: control total del esquema propio

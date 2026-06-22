@@ -37,9 +37,36 @@ CREATE POLICY package_history_insert_own
     )
   );
 
--- recepcionista y admin_logistics no usan estas politicas porque
--- no tienen privilegios GRANT sobre package_history (01b);
--- FORCE RLS solo aplica a quienes ya tienen permiso de acceso.
+CREATE POLICY package_history_update_own
+  ON logistics.package_history
+  FOR UPDATE
+  TO repartidor
+  USING (
+    courier_id = (
+      SELECT id FROM logistics.couriers
+      WHERE db_username = CURRENT_USER
+    )
+  )
+  WITH CHECK (
+    courier_id = (
+      SELECT id FROM logistics.couriers
+      WHERE db_username = CURRENT_USER
+    )
+  );
+
+-- recepcionista no usa estas politicas porque no tiene
+-- privilegios GRANT sobre package_history (01b).
+
+-- admin_logistics SI tiene GRANT completo sobre package_history
+-- (01b), pero FORCE ROW LEVEL SECURITY aplica a cualquier rol
+-- que no sea el owner de la tabla -- sin una policy propia,
+-- esos grants quedarian inertes (0 filas visibles/editables).
+CREATE POLICY package_history_admin_full_access
+  ON logistics.package_history
+  FOR ALL
+  TO admin_logistics
+  USING (true)
+  WITH CHECK (true);
 
 -- ---------------------------------------------------------
 -- Prueba con 2 usuarios distintos (ejecutar en 2 Query Tools)
